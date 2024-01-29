@@ -1,6 +1,6 @@
 ### Hi there 👋, I'm Omar Farouk KOUGBADA.
 
-I am a passionate senior full-stack engineer and open to new challenges and opportunities. 🍀
+I am a passionate senior full-stack engineer🍀
 
 About me :
 - 🌱 I’m currently learning artificial intelligence
