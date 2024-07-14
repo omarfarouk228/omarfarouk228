@@ -1,4 +1,4 @@
-# Hi there i"m Omar Farouk 
+# Hi there i'm Omar Farouk 
 ## Senior Software Full Stack Engineer developer 👋
 ## Favorite Language : PHP / Python / Dart
 ## Frontend Frameworks : Nuxt.js , Tailwindcss
