@@ -1,5 +1,5 @@
 # Hi there i'm Omar Farouk, Senior Software Full Stack Engineer developer 👋
-🔭 I’m currently working on AI App and multiple mobile projects.
+🔭 I’m currently working on AI App and multiple mobile projects.<br>
 🌱 I’m currently Learning Machine Learning
 👯 I’m looking to collaborate on open-source projects
 💬Ask me about Flutter, Laravel, Nuxt.js, FastApi, Django, Java
