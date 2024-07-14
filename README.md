@@ -1,11 +1,10 @@
-# Hi there i'm Omar Farouk 
-## Senior Software Full Stack Engineer developer 👋
-## Favorite Language : PHP / Python / Dart
-## Frontend Frameworks : Nuxt.js , Tailwindcss
-## Backend Frameworks: Laravel, FastApi, NodeJS
-## Mobile : Flutter, Android
-
-💬Ask me about Flutter, Laravel, Nuxt.js, FastApi, Django, Java 
+# Hi there i'm Omar Farouk, Senior Software Full Stack Engineer developer 👋
+🔭 I’m currently working on AI App and multiple mobile projects.
+🌱 I’m currently Learning Machine Learning
+👯 I’m looking to collaborate on open-source projects
+💬Ask me about Flutter, Laravel, Nuxt.js, FastApi, Django, Java
+📫 How to reach me: LinkedIn: Omar Farouk KOUGBADA | Gmail: Komarf28@gmail.com
+😄 Pronouns: he/his
 
 ## Languages 
 - French
