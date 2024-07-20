@@ -1,317 +1,133 @@
-To create a Flutter application that displays a list of trending GitHub repositories using the GitHub GraphQL API with Bloc state management and Clean Architecture, we can structure the project as follows:
+### Unit Testing in Flutter
 
-1. **Core Layer**: Contains business logic, entities, and use cases.
-2. **Data Layer**: Handles data retrieval from the GraphQL API and any local data source if needed.
-3. **Presentation Layer**: UI code and Bloc for state management.
+#### Key Concepts
 
-### Core Layer
+1. **Unit Testing Principles:**
+   - **Isolation:** Tests should be isolated to ensure they only test a single unit of code without external dependencies.
+   - **Deterministic:** Tests should produce consistent results given the same input.
+   - **Fast:** Unit tests should run quickly to facilitate frequent testing.
+   - **Readable:** Tests should be easy to read and understand to ensure maintainability.
+   - **Automated:** Tests should be automated to ensure they can be run regularly and easily.
 
-**Entities**
+2. **Unit Testing Flutter Apps:**
+   - **Widgets vs. Logic:** Unit tests focus on testing business logic or functions. Widget tests are used for testing UI components.
+   - **Test Setup:** Use the `test` package for writing tests. Use `flutter_test` for widget testing.
+
+3. **Mockito Package:**
+   - **Mocking:** Mockito is used to create mock objects for testing. It helps in creating stubs for dependencies and verifying interactions.
+   - **Spying:** You can spy on method calls to verify that certain methods were called.
+
+#### Practice: Writing Unit Tests for BLoC Counter App
+
+**Step 1: Add Dependencies**
+
+Add the following dependencies to your `pubspec.yaml` for testing:
+
+```yaml
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  mockito: ^5.0.0
+  test:
+  # Ensure you use the correct version based on your setup
+```
+
+**Step 2: Create a Simple Counter BLoC**
+
+Assume we have a simple counter BLoC with an increment event:
+
 ```dart
-// lib/core/entities/repository.dart
-class Repository {
-  final String name;
-  final String description;
-  final String language;
+// counter_event.dart
+abstract class CounterEvent {}
 
-  Repository({
-    required this.name,
-    required this.description,
-    required this.language,
+class Increment extends CounterEvent {}
+
+// counter_state.dart
+abstract class CounterState {}
+
+class CounterInitial extends CounterState {}
+
+class CounterValue extends CounterState {
+  final int value;
+
+  CounterValue(this.value);
+}
+
+// counter_bloc.dart
+import 'package:bloc/bloc.dart';
+
+class CounterBloc extends Bloc<CounterEvent, CounterState> {
+  CounterBloc() : super(CounterInitial());
+
+  @override
+  Stream<CounterState> mapEventToState(CounterEvent event) async* {
+    if (event is Increment) {
+      final currentState = state;
+      int newValue = 0;
+      if (currentState is CounterValue) {
+        newValue = currentState.value + 1;
+      }
+      yield CounterValue(newValue);
+    }
+  }
+}
+```
+
+**Step 3: Write Unit Tests Using Mockito**
+
+Create a test file for the BLoC:
+
+```dart
+// counter_bloc_test.dart
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/mockito.dart';
+import 'package:bloc_test/bloc_test.dart';
+import 'package:your_project/counter_bloc.dart'; // Adjust the import as needed
+
+class MockCounterBloc extends MockBloc<CounterEvent, CounterState> implements CounterBloc {}
+
+void main() {
+  group('CounterBloc', () {
+    late CounterBloc counterBloc;
+
+    setUp(() {
+      counterBloc = CounterBloc();
+    });
+
+    test('initial state is CounterInitial', () {
+      expect(counterBloc.state, equals(CounterInitial()));
+    });
+
+    blocTest<CounterBloc, CounterState>(
+      'emits [CounterValue] when Increment event is added',
+      build: () => counterBloc,
+      act: (bloc) => bloc.add(Increment()),
+      expect: () => [CounterValue(1)],
+    );
   });
 }
 ```
 
-**Use Cases**
-```dart
-// lib/core/usecases/fetch_trending_repositories.dart
-import 'package:your_project_name/core/entities/repository.dart';
-import 'package:your_project_name/core/repositories/repository_repository.dart';
+**Explanation of the Test:**
 
-class FetchTrendingRepositories {
-  final RepositoryRepository repository;
+1. **Setup:** Initialize the `CounterBloc` before each test.
+2. **Initial State Test:** Verify that the initial state of the BLoC is `CounterInitial`.
+3. **Event Handling Test:** Use `blocTest` from `bloc_test` package to verify that when an `Increment` event is added, the BLoC emits a `CounterValue` state with the updated value.
 
-  FetchTrendingRepositories(this.repository);
+**Additional Tips:**
 
-  Future<List<Repository>> call() {
-    return repository.fetchTrendingRepositories();
-  }
-}
-```
+- **Mocking Dependencies:** If your BLoC interacts with other classes (e.g., repositories), mock those dependencies to test the BLoC in isolation.
+- **Edge Cases:** Test various scenarios such as invalid events, unexpected states, and error conditions.
 
-**Repository Interface**
-```dart
-// lib/core/repositories/repository_repository.dart
-import 'package:your_project_name/core/entities/repository.dart';
+### Resources
 
-abstract class RepositoryRepository {
-  Future<List<Repository>> fetchTrendingRepositories();
-}
-```
+- **Testing Flutter Apps:** [Flutter Testing Documentation](https://flutter.dev/docs/testing)
+- **Mockito Package:** [Mockito Documentation](https://pub.dev/packages/mockito)
 
-### Data Layer
+### Summary
 
-**GraphQL API Client**
-```dart
-// lib/data/datasources/github_graphql_api.dart
-import 'package:graphql_flutter/graphql_flutter.dart';
-import 'package:your_project_name/core/entities/repository.dart';
+- **Unit Testing Principles:** Focus on isolation, determinism, speed, readability, and automation.
+- **Mockito:** Used for creating mocks and verifying interactions.
+- **Practical Test Example:** Write tests for your BLoC to ensure it handles events and states correctly.
 
-class GithubGraphQLApi {
-  final GraphQLClient client;
-
-  GithubGraphQLApi(this.client);
-
-  Future<List<Repository>> fetchTrendingRepositories() async {
-    const String query = """
-      query {
-        search(query: "stars:>100", type: REPOSITORY, first: 10) {
-          edges {
-            node {
-              ... on Repository {
-                name
-                description
-                primaryLanguage {
-                  name
-                }
-              }
-            }
-          }
-        }
-      }
-    """;
-
-    final QueryResult result = await client.query(QueryOptions(document: gql(query)));
-
-    if (result.hasException) {
-      throw Exception(result.exception.toString());
-    }
-
-    final List<Repository> repositories = (result.data['search']['edges'] as List)
-        .map((edge) => Repository(
-              name: edge['node']['name'],
-              description: edge['node']['description'],
-              language: edge['node']['primaryLanguage']?['name'] ?? 'Unknown',
-            ))
-        .toList();
-
-    return repositories;
-  }
-}
-```
-
-**Repository Implementation**
-```dart
-// lib/data/repositories/repository_repository_impl.dart
-import 'package:your_project_name/core/entities/repository.dart';
-import 'package:your_project_name/core/repositories/repository_repository.dart';
-import 'package:your_project_name/data/datasources/github_graphql_api.dart';
-
-class RepositoryRepositoryImpl implements RepositoryRepository {
-  final GithubGraphQLApi api;
-
-  RepositoryRepositoryImpl(this.api);
-
-  @override
-  Future<List<Repository>> fetchTrendingRepositories() {
-    return api.fetchTrendingRepositories();
-  }
-}
-```
-
-### Presentation Layer
-
-**Bloc Events and States**
-```dart
-// lib/presentation/bloc/repository_event.dart
-import 'package:equatable/equatable.dart';
-
-abstract class RepositoryEvent extends Equatable {
-  @override
-  List<Object?> get props => [];
-}
-
-class FetchRepositories extends RepositoryEvent {}
-
-// lib/presentation/bloc/repository_state.dart
-import 'package:equatable/equatable.dart';
-import 'package:your_project_name/core/entities/repository.dart';
-
-abstract class RepositoryState extends Equatable {
-  @override
-  List<Object?> get props => [];
-}
-
-class RepositoryInitial extends RepositoryState {}
-
-class RepositoryLoading extends RepositoryState {}
-
-class RepositoryLoaded extends RepositoryState {
-  final List<Repository> repositories;
-
-  RepositoryLoaded(this.repositories);
-
-  @override
-  List<Object?> get props => [repositories];
-}
-
-class RepositoryError extends RepositoryState {
-  final String message;
-
-  RepositoryError(this.message);
-
-  @override
-  List<Object?> get props => [message];
-}
-```
-
-**Bloc Implementation**
-```dart
-// lib/presentation/bloc/repository_bloc.dart
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:your_project_name/core/usecases/fetch_trending_repositories.dart';
-import 'package:your_project_name/presentation/bloc/repository_event.dart';
-import 'package:your_project_name/presentation/bloc/repository_state.dart';
-
-class RepositoryBloc extends Bloc<RepositoryEvent, RepositoryState> {
-  final FetchTrendingRepositories fetchTrendingRepositories;
-
-  RepositoryBloc(this.fetchTrendingRepositories) : super(RepositoryInitial()) {
-    on<FetchRepositories>(_onFetchRepositories);
-  }
-
-  Future<void> _onFetchRepositories(FetchRepositories event, Emitter<RepositoryState> emit) async {
-    emit(RepositoryLoading());
-
-    try {
-      final repositories = await fetchTrendingRepositories();
-      emit(RepositoryLoaded(repositories));
-    } catch (e) {
-      emit(RepositoryError(e.toString()));
-    }
-  }
-}
-```
-
-**UI Implementation**
-```dart
-// lib/presentation/pages/repository_page.dart
-import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:your_project_name/presentation/bloc/repository_bloc.dart';
-import 'package:your_project_name/presentation/bloc/repository_event.dart';
-import 'package:your_project_name/presentation/bloc/repository_state.dart';
-
-class RepositoryPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Trending Repositories'),
-      ),
-      body: BlocProvider(
-        create: (context) => RepositoryBloc(/* Inject FetchTrendingRepositories use case */)
-          ..add(FetchRepositories()),
-        child: BlocBuilder<RepositoryBloc, RepositoryState>(
-          builder: (context, state) {
-            if (state is RepositoryLoading) {
-              return Center(child: CircularProgressIndicator());
-            } else if (state is RepositoryLoaded) {
-              return ListView.builder(
-                itemCount: state.repositories.length,
-                itemBuilder: (context, index) {
-                  final repository = state.repositories[index];
-                  return ListTile(
-                    title: Text(repository.name),
-                    subtitle: Text(repository.description),
-                    trailing: Text(repository.language),
-                  );
-                },
-              );
-            } else if (state is RepositoryError) {
-              return Center(child: Text('Error: ${state.message}'));
-            }
-            return Center(child: Text('Start Fetching Repositories'));
-          },
-        ),
-      ),
-    );
-  }
-}
-```
-
-### Dependency Injection
-
-**Setup Dependency Injection**
-```dart
-// lib/injection.dart
-import 'package:get_it/get_it.dart';
-import 'package:graphql_flutter/graphql_flutter.dart';
-import 'package:your_project_name/core/repositories/repository_repository.dart';
-import 'package:your_project_name/core/usecases/fetch_trending_repositories.dart';
-import 'package:your_project_name/data/datasources/github_graphql_api.dart';
-import 'package:your_project_name/data/repositories/repository_repository_impl.dart';
-import 'package:your_project_name/presentation/bloc/repository_bloc.dart';
-
-final sl = GetIt.instance;
-
-void setup() {
-  // GraphQL Client
-  final HttpLink httpLink = HttpLink('https://api.github.com/graphql');
-  final AuthLink authLink = AuthLink(getToken: () async => 'Bearer YOUR_GITHUB_TOKEN');
-  final Link link = authLink.concat(httpLink);
-
-  final GraphQLClient client = GraphQLClient(
-    cache: GraphQLCache(store: InMemoryStore()),
-    link: link,
-  );
-
-  // External
-  sl.registerLazySingleton(() => client);
-
-  // Data sources
-  sl.registerLazySingleton(() => GithubGraphQLApi(sl()));
-
-  // Repositories
-  sl.registerLazySingleton<RepositoryRepository>(() => RepositoryRepositoryImpl(sl()));
-
-  // Use cases
-  sl.registerLazySingleton(() => FetchTrendingRepositories(sl()));
-
-  // Blocs
-  sl.registerFactory(() => RepositoryBloc(sl()));
-}
-```
-
-**Main Application**
-```dart
-// lib/main.dart
-import 'package:flutter/material.dart';
-import 'package:your_project_name/injection.dart' as di;
-import 'package:your_project_name/presentation/pages/repository_page.dart';
-
-void main() {
-  di.setup();
-  runApp(MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Clean Architecture',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: RepositoryPage(),
-    );
-  }
-}
-```
-
-### Note
-
-1. Replace `'YOUR_GITHUB_TOKEN'` with your actual GitHub personal access token.
-2. This example assumes that you have set up the `graphql_flutter` package. If not, add it to your `pubspec.yaml`.
-
-This is a basic structure following Clean Architecture. You can further refine and expand it based on your specific requirements and add more features as needed.
+By understanding these concepts and practicing unit tests with Mockito, you'll be well-prepared to ensure your code is reliable and robust.
