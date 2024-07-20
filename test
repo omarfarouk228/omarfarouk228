@@ -1,133 +1,136 @@
-### Unit Testing in Flutter
+To write unit tests for the `RepositoryBloc` class, you need to set up a test environment and mock the dependencies. Since you're using the `flutter_bloc` package, you'll need the `bloc_test` package to help with testing Bloc events and states. Additionally, you can use the `mockito` package to mock the `FetchTrendingRepositories` use case.
 
-#### Key Concepts
+Here's how you can write unit tests for the `RepositoryBloc` class:
 
-1. **Unit Testing Principles:**
-   - **Isolation:** Tests should be isolated to ensure they only test a single unit of code without external dependencies.
-   - **Deterministic:** Tests should produce consistent results given the same input.
-   - **Fast:** Unit tests should run quickly to facilitate frequent testing.
-   - **Readable:** Tests should be easy to read and understand to ensure maintainability.
-   - **Automated:** Tests should be automated to ensure they can be run regularly and easily.
+### 1. Add Dependencies
 
-2. **Unit Testing Flutter Apps:**
-   - **Widgets vs. Logic:** Unit tests focus on testing business logic or functions. Widget tests are used for testing UI components.
-   - **Test Setup:** Use the `test` package for writing tests. Use `flutter_test` for widget testing.
-
-3. **Mockito Package:**
-   - **Mocking:** Mockito is used to create mock objects for testing. It helps in creating stubs for dependencies and verifying interactions.
-   - **Spying:** You can spy on method calls to verify that certain methods were called.
-
-#### Practice: Writing Unit Tests for BLoC Counter App
-
-**Step 1: Add Dependencies**
-
-Add the following dependencies to your `pubspec.yaml` for testing:
+Add the following dependencies to your `pubspec.yaml` file:
 
 ```yaml
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  mockito: ^5.0.0
-  test:
-  # Ensure you use the correct version based on your setup
+  bloc_test: ^9.0.3
+  mockito: ^5.1.0
 ```
 
-**Step 2: Create a Simple Counter BLoC**
+### 2. Create the Test File
 
-Assume we have a simple counter BLoC with an increment event:
+Create a test file `repository_bloc_test.dart` in the `test` directory.
 
-```dart
-// counter_event.dart
-abstract class CounterEvent {}
+### 3. Write the Tests
 
-class Increment extends CounterEvent {}
-
-// counter_state.dart
-abstract class CounterState {}
-
-class CounterInitial extends CounterState {}
-
-class CounterValue extends CounterState {
-  final int value;
-
-  CounterValue(this.value);
-}
-
-// counter_bloc.dart
-import 'package:bloc/bloc.dart';
-
-class CounterBloc extends Bloc<CounterEvent, CounterState> {
-  CounterBloc() : super(CounterInitial());
-
-  @override
-  Stream<CounterState> mapEventToState(CounterEvent event) async* {
-    if (event is Increment) {
-      final currentState = state;
-      int newValue = 0;
-      if (currentState is CounterValue) {
-        newValue = currentState.value + 1;
-      }
-      yield CounterValue(newValue);
-    }
-  }
-}
-```
-
-**Step 3: Write Unit Tests Using Mockito**
-
-Create a test file for the BLoC:
+Here's the complete test code for the `RepositoryBloc` class:
 
 ```dart
-// counter_bloc_test.dart
-import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart';
 import 'package:bloc_test/bloc_test.dart';
-import 'package:your_project/counter_bloc.dart'; // Adjust the import as needed
+import 'package:flutter_interview/core/entities/repository.dart';
+import 'package:flutter_interview/core/usecases/fetch_trending_repositories.dart';
+import 'package:flutter_interview/presentation/bloc/repository_bloc.dart';
+import 'package:flutter_interview/presentation/bloc/repository_event.dart';
+import 'package:flutter_interview/presentation/bloc/repository_state.dart';
+import 'package:mockito/mockito.dart';
+import 'package:flutter_test/flutter_test.dart';
 
-class MockCounterBloc extends MockBloc<CounterEvent, CounterState> implements CounterBloc {}
+// Mock class for FetchTrendingRepositories
+class MockFetchTrendingRepositories extends Mock implements FetchTrendingRepositories {}
 
 void main() {
-  group('CounterBloc', () {
-    late CounterBloc counterBloc;
+  late RepositoryBloc repositoryBloc;
+  late MockFetchTrendingRepositories mockFetchTrendingRepositories;
 
-    setUp(() {
-      counterBloc = CounterBloc();
-    });
+  setUp(() {
+    mockFetchTrendingRepositories = MockFetchTrendingRepositories();
+    repositoryBloc = RepositoryBloc(mockFetchTrendingRepositories);
+  });
 
-    test('initial state is CounterInitial', () {
-      expect(counterBloc.state, equals(CounterInitial()));
-    });
+  tearDown(() {
+    repositoryBloc.close();
+  });
 
-    blocTest<CounterBloc, CounterState>(
-      'emits [CounterValue] when Increment event is added',
-      build: () => counterBloc,
-      act: (bloc) => bloc.add(Increment()),
-      expect: () => [CounterValue(1)],
+  final repository = Repository(name: 'repo', description: 'description', language: 'Dart');
+  final repositories = [repository];
+  final result = {
+    'repositories': repositories,
+    'endCursor': 'endCursor',
+    'hasNextPage': true,
+  };
+
+  group('RepositoryBloc', () {
+    blocTest<RepositoryBloc, RepositoryState>(
+      'emits [RepositoryLoading, RepositoryLoaded] when FetchRepositories is added',
+      build: () {
+        when(mockFetchTrendingRepositories.call())
+            .thenAnswer((_) async => result);
+        return repositoryBloc;
+      },
+      act: (bloc) => bloc.add(FetchRepositories()),
+      expect: () => [
+        RepositoryLoading(),
+        RepositoryLoaded(repositories, repositories),
+      ],
+    );
+
+    blocTest<RepositoryBloc, RepositoryState>(
+      'emits [RepositoryLoading, RepositoryError] when FetchRepositories fails',
+      build: () {
+        when(mockFetchTrendingRepositories.call()).thenThrow(Exception('Error'));
+        return repositoryBloc;
+      },
+      act: (bloc) => bloc.add(FetchRepositories()),
+      expect: () => [
+        RepositoryLoading(),
+        RepositoryError('Exception: Error'),
+      ],
+    );
+
+    blocTest<RepositoryBloc, RepositoryState>(
+      'emits filtered repositories when FilterRepositoriesByLanguage is added',
+      build: () {
+        when(mockFetchTrendingRepositories.call())
+            .thenAnswer((_) async => result);
+        return repositoryBloc;
+      },
+      act: (bloc) {
+        bloc.add(FetchRepositories());
+        bloc.add(FilterRepositoriesByLanguage('Dart'));
+      },
+      expect: () => [
+        RepositoryLoading(),
+        RepositoryLoaded(repositories, repositories),
+        RepositoryLoaded(repositories, repositories),
+      ],
+    );
+
+    blocTest<RepositoryBloc, RepositoryState>(
+      'emits [RepositoryLoaded] with more repositories when LoadMoreRepositories is added',
+      build: () {
+        when(mockFetchTrendingRepositories.call(after: 'endCursor'))
+            .thenAnswer((_) async => result);
+        return repositoryBloc;
+      },
+      seed: () => RepositoryLoaded(repositories, repositories),
+      act: (bloc) => bloc.add(LoadMoreRepositories()),
+      expect: () => [
+        RepositoryLoaded([...repositories, ...repositories], [...repositories, ...repositories]),
+      ],
     );
   });
 }
 ```
 
-**Explanation of the Test:**
+### Explanation of Tests
 
-1. **Setup:** Initialize the `CounterBloc` before each test.
-2. **Initial State Test:** Verify that the initial state of the BLoC is `CounterInitial`.
-3. **Event Handling Test:** Use `blocTest` from `bloc_test` package to verify that when an `Increment` event is added, the BLoC emits a `CounterValue` state with the updated value.
+1. **Initialization**: Set up the `RepositoryBloc` and the mock `FetchTrendingRepositories` before each test and tear them down afterward.
 
-**Additional Tips:**
+2. **FetchRepositories Event**:
+   - Test that the bloc emits `RepositoryLoading` and then `RepositoryLoaded` when the `FetchRepositories` event is added and the fetch is successful.
+   - Test that the bloc emits `RepositoryLoading` and then `RepositoryError` when the `FetchRepositories` event is added and the fetch fails.
 
-- **Mocking Dependencies:** If your BLoC interacts with other classes (e.g., repositories), mock those dependencies to test the BLoC in isolation.
-- **Edge Cases:** Test various scenarios such as invalid events, unexpected states, and error conditions.
+3. **FilterRepositoriesByLanguage Event**:
+   - Test that the bloc emits filtered repositories correctly when the `FilterRepositoriesByLanguage` event is added.
 
-### Resources
+4. **LoadMoreRepositories Event**:
+   - Test that the bloc emits more repositories correctly when the `LoadMoreRepositories` event is added and there are more repositories to load.
 
-- **Testing Flutter Apps:** [Flutter Testing Documentation](https://flutter.dev/docs/testing)
-- **Mockito Package:** [Mockito Documentation](https://pub.dev/packages/mockito)
-
-### Summary
-
-- **Unit Testing Principles:** Focus on isolation, determinism, speed, readability, and automation.
-- **Mockito:** Used for creating mocks and verifying interactions.
-- **Practical Test Example:** Write tests for your BLoC to ensure it handles events and states correctly.
-
-By understanding these concepts and practicing unit tests with Mockito, you'll be well-prepared to ensure your code is reliable and robust.
+These tests cover the main functionalities of your `RepositoryBloc`, ensuring that it handles fetching, filtering, and pagination correctly.
