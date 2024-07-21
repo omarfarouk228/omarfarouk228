@@ -1,4 +1,4 @@
-# Hi there i'm Omar Farouk, Senior Software Full Stack Engineer developer 👋
+# Hi there i'm Omar Farouk, Senior Software Full Stack Engineer 👋
 🔭 I’m currently working on AI App and multiple mobile projects.<br>
 🌱 I’m currently Learning Machine Learning<br>
 👯 I’m looking to collaborate on open-source projects<br>
