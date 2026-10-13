@@ -12,7 +12,7 @@
 [![Portfolio](https://img.shields.io/badge/Portfolio-ofaroukk.com-111111?style=for-the-badge&logo=googlechrome&logoColor=white)](https://ofaroukk.com/)
 [![X](https://img.shields.io/badge/X-@OKougbada-000000?style=for-the-badge&logo=x&logoColor=white)](https://x.com/OKougbada)
 [![Email](https://img.shields.io/badge/Gmail-Komarf28@gmail.com-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:Komarf28@gmail.com)
-![Profile Views](https://komarev.com/ghpvc/?username=omarfarouk228&color=4285F4&style=for-the-badge&label=PROFILE+VIEWS)
+![Profile Views](https://api.visitorbadge.io/api/visitors?path=omarfarouk228&label=PROFILE%20VIEWS&countColor=%234285F4&style=for-the-badge&labelStyle=upper)
 
 📍 Lomé, Togo · 🌍 Africa · 🇫🇷 France · 🇦🇪 Dubai
 
